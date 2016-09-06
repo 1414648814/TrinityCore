@@ -50,6 +50,8 @@ enum MageSpells
     SPELL_MAGE_SUMMON_WATER_ELEMENTAL_PERMANENT  = 70908,
     SPELL_MAGE_SUMMON_WATER_ELEMENTAL_TEMPORARY  = 70907,
     SPELL_MAGE_GLYPH_OF_BLAST_WAVE               = 62126,
+    SPELL_MAGE_CHILLED                           = 12484,
+    SPELL_MAGE_MANA_SURGE                        = 37445
 };
 
 enum MageSpellIcons
@@ -232,6 +234,76 @@ class spell_mage_cold_snap : public SpellScriptLoader
         SpellScript* GetSpellScript() const override
         {
             return new spell_mage_cold_snap_SpellScript();
+        }
+};
+
+// -11185 - Improved Blizzard
+class spell_mage_imp_blizzard : public SpellScriptLoader
+{
+    public:
+        spell_mage_imp_blizzard() : SpellScriptLoader("spell_mage_imp_blizzard") { }
+
+        class spell_mage_imp_blizzard_AuraScript : public AuraScript
+        {
+            PrepareAuraScript(spell_mage_imp_blizzard_AuraScript);
+
+            bool Validate(SpellInfo const* /*spellInfo*/) override
+            {
+                if (!sSpellMgr->GetSpellInfo(SPELL_MAGE_CHILLED))
+                    return false;
+                return true;
+            }
+
+            void HandleChill(AuraEffect const* /*aurEff*/, ProcEventInfo& eventInfo)
+            {
+                uint32 triggerSpellId = sSpellMgr->GetSpellWithRank(SPELL_MAGE_CHILLED, GetSpellInfo()->GetRank());
+                eventInfo.GetActor()->CastSpell(eventInfo.GetProcTarget(), triggerSpellId, true);
+            }
+
+            void Register() override
+            {
+                OnEffectProc += AuraEffectProcFn(spell_mage_imp_blizzard_AuraScript::HandleChill, EFFECT_0, SPELL_AURA_OVERRIDE_CLASS_SCRIPTS);
+            }
+        };
+
+        AuraScript* GetAuraScript() const override
+        {
+            return new spell_mage_imp_blizzard_AuraScript();
+        }
+};
+
+// 37447 - Improved Mana Gems
+// 61062 - Improved Mana Gems
+class spell_mage_imp_mana_gems : public SpellScriptLoader
+{
+    public:
+        spell_mage_imp_mana_gems() : SpellScriptLoader("spell_mage_imp_mana_gems") { }
+
+        class spell_mage_imp_mana_gems_AuraScript : public AuraScript
+        {
+            PrepareAuraScript(spell_mage_imp_mana_gems_AuraScript);
+
+            bool Validate(SpellInfo const* /*spellInfo*/) override
+            {
+                if (!sSpellMgr->GetSpellInfo(SPELL_MAGE_MANA_SURGE))
+                    return false;
+                return true;
+            }
+
+            void HandleProc(AuraEffect const* /*aurEff*/, ProcEventInfo& eventInfo)
+            {
+                eventInfo.GetActor()->CastSpell(GetUnitOwner(), SPELL_MAGE_MANA_SURGE, true);
+            }
+
+            void Register() override
+            {
+                OnEffectProc += AuraEffectProcFn(spell_mage_imp_mana_gems_AuraScript::HandleProc, EFFECT_1, SPELL_AURA_OVERRIDE_CLASS_SCRIPTS);
+            }
+        };
+
+        AuraScript* GetAuraScript() const override
+        {
+            return new spell_mage_imp_mana_gems_AuraScript();
         }
 };
 
@@ -687,6 +759,8 @@ void AddSC_mage_spell_scripts()
     new spell_mage_blazing_speed();
     new spell_mage_burnout();
     new spell_mage_cold_snap();
+    new spell_mage_imp_blizzard();
+    new spell_mage_imp_mana_gems();
     new spell_mage_fire_frost_ward();
     new spell_mage_focus_magic();
     new spell_mage_ice_barrier();

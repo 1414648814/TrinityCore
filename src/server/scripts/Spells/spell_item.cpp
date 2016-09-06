@@ -3221,6 +3221,68 @@ class spell_item_taunt_flag_targeting : public SpellScriptLoader
         }
 };
 
+enum ZandalarianCharms
+{
+    SPELL_UNSTABLE_POWER_AURA_STACK     = 24659,
+    SPELL_RESTLESS_STRENGTH_AURA_STACK  = 24662
+};
+
+// Item 19950 - Zandalarian Hero Charm
+// 24658 - Unstable Power
+
+// Item 19949 - Zandalarian Hero Medallion
+// 24661 - Restless Strength
+class spell_item_zandalarian_charm : public SpellScriptLoader
+{
+    public:
+        spell_item_zandalarian_charm(char const* ScriptName, uint32 SpellId) : SpellScriptLoader(ScriptName), _spellId(SpellId) { }
+
+        class spell_item_zandalarian_charm_AuraScript : public AuraScript
+        {
+            friend class spell_item_zandalarian_charm;
+            spell_item_zandalarian_charm_AuraScript(uint32 SpellId) : AuraScript(), _spellId(SpellId) { }
+
+            PrepareAuraScript(spell_item_zandalarian_charm_AuraScript);
+
+            bool Validate(SpellInfo const* /*spellInfo*/) override
+            {
+                if (!sSpellMgr->GetSpellInfo(_spellId))
+                    return false;
+                return true;
+            }
+
+            bool CheckProc(ProcEventInfo& eventInfo)
+            {
+                if (SpellInfo const* spellInfo = eventInfo.GetSpellInfo())
+                    if (spellInfo->Id != m_scriptSpellId)
+                        return true;
+
+                return false;
+            }
+
+            void HandleStackDrop(AuraEffect const* /*aurEff*/, ProcEventInfo& /*eventInfo*/)
+            {
+                GetTarget()->RemoveAuraFromStack(_spellId);
+            }
+
+            void Register() override
+            {
+                DoCheckProc += AuraCheckProcFn(spell_item_zandalarian_charm_AuraScript::CheckProc);
+                OnEffectProc += AuraEffectProcFn(spell_item_zandalarian_charm_AuraScript::HandleStackDrop, EFFECT_0, SPELL_AURA_DUMMY);
+            }
+
+            uint32 _spellId;
+        };
+
+        AuraScript* GetAuraScript() const override
+        {
+            return new spell_item_zandalarian_charm_AuraScript(_spellId);
+        }
+
+    private:
+        uint32 _spellId;
+};
+
 void AddSC_item_spell_scripts()
 {
     // 23074 Arcanite Dragonling
@@ -3302,4 +3364,7 @@ void AddSC_item_spell_scripts()
     new spell_item_charm_witch_doctor();
     new spell_item_mana_drain();
     new spell_item_taunt_flag_targeting();
+
+    new spell_item_zandalarian_charm("spell_item_unstable_power", SPELL_UNSTABLE_POWER_AURA_STACK);
+    new spell_item_zandalarian_charm("spell_item_restless_strength", SPELL_RESTLESS_STRENGTH_AURA_STACK);
 }
