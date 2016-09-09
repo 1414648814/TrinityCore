@@ -61,7 +61,8 @@ enum HunterSpells
     SPELL_DRAENEI_GIFT_OF_THE_NAARU                 = 59543,
     SPELL_ROAR_OF_SACRIFICE_TRIGGERED               = 67481,
     SPELL_LOCK_AND_LOAD_TRIGGER                     = 56453,
-    SPELL_LOCK_AND_LOAD_MARKER                      = 67544
+    SPELL_LOCK_AND_LOAD_MARKER                      = 67544,
+    SPELL_HUNTER_KILL_COMMAND_HUNTER                = 34027
 };
 
 // 13161 - Aspect of the Beast
@@ -444,6 +445,46 @@ class spell_hun_invigoration : public SpellScriptLoader
         SpellScript* GetSpellScript() const override
         {
             return new spell_hun_invigoration_SpellScript();
+        }
+};
+
+// 58914 - Kill Command
+class spell_hun_kill_command_pet : public SpellScriptLoader
+{
+    public:
+        spell_hun_kill_command_pet() : SpellScriptLoader("spell_hun_kill_command_pet") { }
+
+        class spell_hun_kill_command_pet_AuraScript : public AuraScript
+        {
+            PrepareAuraScript(spell_hun_kill_command_pet_AuraScript);
+
+            bool Validate(SpellInfo const* /*spellInfo*/) override
+            {
+                if (!sSpellMgr->GetSpellInfo(SPELL_HUNTER_KILL_COMMAND_HUNTER))
+                    return false;
+                return true;
+            }
+
+            void HandleProc(AuraEffect const* /*aurEff*/, ProcEventInfo& eventInfo)
+            {
+                // prevent charge drop (aura has both proc charge and stacks)
+                PreventDefaultAction();
+
+                if (Unit* owner = eventInfo.GetActor()->GetOwner())
+                    owner->RemoveAuraFromStack(SPELL_HUNTER_KILL_COMMAND_HUNTER);
+
+                ModStackAmount(-1);
+            }
+
+            void Register() override
+            {
+                OnEffectProc += AuraEffectProcFn(spell_hun_kill_command_pet_AuraScript::HandleProc, EFFECT_0, SPELL_AURA_DUMMY);
+            }
+        };
+
+        AuraScript* GetAuraScript() const override
+        {
+            return new spell_hun_kill_command_pet_AuraScript();
         }
 };
 
@@ -1237,6 +1278,7 @@ void AddSC_hunter_spell_scripts()
     new spell_hun_glyph_of_arcane_shot();
     new spell_hun_improved_mend_pet();
     new spell_hun_invigoration();
+    new spell_hun_kill_command_pet();
     new spell_hun_last_stand_pet();
     new spell_hun_lock_and_load();
     new spell_hun_masters_call();
